@@ -1,0 +1,29 @@
+diff --git a/gcc/ira.c b/gcc/ira.c
+index 2ef69cb..762451a 100644
+--- a/gcc/ira.c
++++ b/gcc/ira.c
+@@ -2971,6 +2971,7 @@ int ira_reg_equiv_len;
+ 
+ /* Info about equiv. info for each register.  */
+ struct ira_reg_equiv *ira_reg_equiv;
++struct ira_reg_equiv **ira_reg_equiv_p = &ira_reg_equiv;
+ 
+ /* Expand ira_reg_equiv if necessary.  */
+ void
+diff --git a/gcc/ira.h b/gcc/ira.h
+index f71c801..81b2ab7 100644
+--- a/gcc/ira.h
++++ b/gcc/ira.h
+@@ -171,10 +171,12 @@ struct ira_reg_equiv
+ 
+ /* The length of the following array.  */
+ extern int ira_reg_equiv_len;
++extern struct ira_reg_equiv **ira_reg_equiv_p;
+ 
+ /* Info about equiv. info for each register.  */
+ extern struct ira_reg_equiv *ira_reg_equiv;
+ 
++
+ extern void ira_init_once (void);
+ extern void ira_init (void);
+ extern void ira_finish_once (void);

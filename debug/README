@@ -1,0 +1,3 @@
+Various and usually simple and self-explanatory bits of C code or
+patches that can help during debugging or some kind of behavior
+analysis such as logging.

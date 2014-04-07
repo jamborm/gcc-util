@@ -1,0 +1,17 @@
+#!/bin/bash
+
+ASMFILE="$1"
+if [ \! -f "$ASMFILE" ] ; then
+    echo Asm file does not exist >&2
+    exit 1
+fi
+
+grep call "$ASMFILE" | cut -c-60 | sort >/tmp/asm_calls_$$
+grep $'jmp\t[^.]' "$ASMFILE" | cut -c-60 | sort >>/tmp/asm_calls_$$
+
+cat /tmp/asm_calls_$$ | while read X; do
+    C=`grep "$X" /tmp/asm_calls_$$ | wc -l`
+    echo "|$X|  $C|";
+done | sort -u
+
+rm /tmp/asm_calls_$$

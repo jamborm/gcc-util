@@ -1,0 +1,2 @@
+#!/bin/bash
+asm_extract_func.py "$1" "$2" | asm_to_dot.py - | dot -Tpng | feh -

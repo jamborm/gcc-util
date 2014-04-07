@@ -1,0 +1,16 @@
+These scripts should be in the PATH and help with very frequent tasks
+in gcc development, such as configuring gcc, extracting and comparing
+testsuite results etc.
+
+They more-or-less assume the following directory layout.  There is a
+top-level gcc directory, usually but not necessarily ~/gcc, which
+contains sub-directories with common structure.  Directory src with
+checkout sources, obj for building, (optionally) b-obj for
+bootstrapping, inst as destination for make install and logs for .sum
+files with testing results.
+
+So for example in my ~/gcc there is ~/gcc/trunk for pristine untouched
+trunk, and ~/gcc/icln for IPA work, among others.  Both have
+subdirectories mentioned above.  The only special one among them is
+~/trunk/logs which is supposed to hold the untouched trunk testsuite
+results to compare against.

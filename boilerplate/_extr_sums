@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Copy all .sum files in all subdirectories in to the directory
+# specified by the first parameter.
+
+if [ -z "$1" ] ; then
+    echo "Param missing. Usage __extr_testlogs destdir" >&2
+    exit 1
+fi
+
+cp -v `find . -name '*.sum' -print` $1

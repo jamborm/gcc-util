@@ -1,0 +1,272 @@
+#!/usr/bin/python
+
+# Script to make configuring gcc quicker by guessing the most commonly
+# used options.  Without parameters it assumes that the configure
+# script is in ../src (can be overridden by the first non-switch
+# parameter) and will default to install prefix ../inst (but this can
+# be also overridden by the second non-swith parameter).  Script will
+# happily list its extensive switches when run with -h and do nothing
+# but print what it would have done with -z.
+
+import sys
+import os
+import getopt
+import time
+
+def die(s):
+    "Give a string warning S to stderr and abort with exit code 1."
+
+    sys.stderr.write(s + "\n")
+    sys.exit(1)
+
+def print_usage():
+    print """  _cgcc - run gcc configuration script with most widely
+          used or guessed parameters.
+
+Options:
+
+-h            Diplay tis help and quit.
+--help        Display this help and quit.
+
+-a            All default languages
+-d            All default languages and Ada
+-o            All default languages and Ada and ObjC++
+                (default in "b-obj" directory)
+-c            C only
+-p            C, C++ only
+                (default, except in "b-obj")
+-f            C, C++ and Fortran only
+--fort        C and Fortran only
+--ada         C, C++ and Ada only
+--no-java     C, C++, Fortran, Ada and Objc only.
+
+-b            Do bootstrap.  Bootstrap is otherwise only performed if the 
+              current directory name is "b-obj".
+-n            Do not bootstrap whatever the name of the current directory is.
+
+-r            Release checking instead of default "all" checking.
+--fold        "yes,fold" checking
+
+--nosan       Pass "--disable-libsanitizer" (default on all platforms 
+              except x86_64)
+--san         Do not pass "--disable-libsanitizer" (useful on other platforms)
+--multi       Pass "--disable-multilib"
+--no-multi    Pass "--disable-multilib".  Default on some problematic hosts.
+--memstat     Pass "--enable-gather-detailed-mem-stats"
+
+--gold        Pass "--enable-gold".
+--plugin      Pass "--with-plugin-ld" even when not on a selected host
+--no-plugin   Do not pass any "--with-plugin-ld" even on selected hosts
+--lto-boot    LTO bootstrap.  Implies -b.
+
+-z	      Just print the configure command, do not run it.
+
+"""
+
+
+def main():
+
+    if os.getcwd().split("/")[1] == "abuild":
+        gold_path = "/abuild/mjambor/binutils-2.24/obj/gold/ld-new"
+    else:
+        gold_path = "/home/mjambor/binutils/obj/gold/ld-new"
+        pass
+
+    lang = "c,c++"
+    bootstrap = False
+    checking = "yes"
+
+    unm = os.uname()
+    if unm[-1] == "x86_64":
+        sanitizer = True
+    else:
+        sanitizer = False
+        pass
+    exp_sanitizer = False
+
+    warn_ld_plugin_disabled = True
+    try:
+        plugin_hosts = ["virgil", "alvy", "tuc", "evans"]
+        if plugin_hosts.count(os.environ["HOST"]) > 0:
+            ld_plugin = True
+        else:
+            ld_plugin = False
+            pass
+        pass
+    except:
+        ld_plugin = False
+        pass
+
+    ena_multilib = False
+    dis_multilib = False
+    warn_dis_multilib = False
+    try:
+        dis_multilib_hosts = ["tuc"]
+        if dis_multilib_hosts.count(os.environ["HOST"]) > 0:
+            dis_multilib = True
+            warn_dis_multilib = True
+        pass
+    except:
+        pass
+
+    just_print = False
+    other_flags = ""
+
+    if (os.path.split(os.getcwd())[1] == "b-obj"):
+        bootstrap = True
+        lang = "all,ada,obj-c++"
+
+    try:
+        opts, args = getopt.gnu_getopt(sys.argv[1:], "hadocpfbnrz",
+                                       ["help", "fort", "ada", "no-java",
+                                        "fold", "nosan", "san", "memstat",
+                                        "gold", "plugin", "no-plugin",
+                                        "lto-boot", "multi", "no-multi"])
+    except getopt.GetoptError, err:
+        # print help information and exit:
+        print_usage()
+        die(str(err))
+    for o, a in opts:
+        if o in ("-h", "--help"):
+            print_usage()
+            sys.exit(1)
+        elif o == "-a":
+            lang = "all"
+        elif o == "-d":
+            lang = "all,ada"
+        elif o == "-o":
+            lang = "all,ada,obj-c++"
+        elif o == "-c":
+            lang = "c"
+        elif o == "-p":
+            lang = "c,c++"
+        elif o == "-f":
+            lang = "c,c++,fortran"
+        elif o == "--fort":
+            lang = "c,fortran"
+        elif o == "--ada":
+            lang = "c,c++,ada"
+        elif o == "--no-java":
+            lang = "c,c++,fortran,objc,ada"
+        elif o == "-b":
+            bootstrap = True
+        elif o == "-n":
+            bootstrap = False
+        elif o == "-r":
+            checking = "release"
+        elif o == "-z":
+            just_print = True
+        elif o == "--fold":
+            checking = "yes,fold"
+        elif o == "--nosan":
+            sanitizer = False
+            exp_sanitizer = False
+        elif o == "--san":
+            sanitizer = True;
+            exp_sanitizer = True            
+        elif o == "--memstat":
+            other_flags = other_flags + " --enable-gather-detailed-mem-stats"
+        elif o == "--gold":
+            other_flags = other_flags + " --enable-gold"
+        elif o == "--plugin":
+            ld_plugin = True
+        elif o == "--no-plugin":
+            warn_ld_plugin_disabled = False
+            ld_plugin = False
+        elif o == "--lto-boot":
+            bootstrap = True
+            other_flags = other_flags + " --with-build-config=bootstrap-lto"
+        elif o == "--multi":
+            ena_multilib = True
+            dis_multilib = False
+            warn_dis_multilib = False
+        elif o == "--no-multi":
+            dis_multilib = True
+            warn_dis_multilib = False
+            ena_multilib = False
+        else:
+            print_usage()
+            die ("Error, unknown option %s" % o)
+            pass
+        continue
+
+    warning = False
+
+    if len(args) > 0:
+        src_dir = args[0]
+    else:
+        src_dir = os.path.abspath("../src")
+
+    if len(args) > 1:
+        inst_dir = args[1]
+    else:
+        inst_dir = os.path.abspath("../inst")
+
+    if not os.path.exists (src_dir):
+        die ("Source directory %s does not exists." % src_dir)
+    script_path = src_dir + "/configure"
+    if not os.path.exists (script_path):
+        die ("Source directory %s does not contain configure script." % src_dir)
+
+    if not os.path.exists (inst_dir):
+        sys.stderr.write ("WARNING: Instalation directory" +
+                          ("%s does not exist.\n" % inst_dir))
+        warning = True
+        pass
+
+    cmd = (script_path +
+           " --prefix=" + inst_dir + 
+           " --enable-languages=" + lang +
+           " --enable-checking=" + checking)
+
+    if not bootstrap:
+        cmd = cmd + " --disable-bootstrap"
+        pass
+
+    if ld_plugin:
+        cmd = cmd + " --with-plugin-ld=" + gold_path
+        pass
+    elif warn_ld_plugin_disabled:
+        sys.stderr.write ("WARNING: Not using ld plugin, expect LTO issues\n")
+        warning = True
+        pass
+
+    if not sanitizer:
+        cmd = cmd + " --disable-libsanitizer"
+        pass
+    elif exp_sanitizer:
+        cmd = cmd + " --enable-libsanitizer"
+        pass
+
+    if dis_multilib:
+        cmd = cmd + " --disable-multilib"
+        if warn_dis_multilib:
+            sys.stderr.write ("WARNING: Multilib implicitely disabled for "
+                              + "this host, use --multi to override.\n")
+            warning = True
+            pass
+        pass
+    elif ena_multilib:
+        cmd = cmd + " --enable-multilib"
+        pass
+
+    cmd = cmd + other_flags
+    
+    if warning:
+        print ("")
+        pass
+
+    print(cmd)
+    
+    if not just_print:
+        if warning:
+            time.sleep(1.5)
+        else:
+            time.sleep(0.5)
+            pass
+        os.system(cmd)
+        pass
+    return
+
+if __name__ == '__main__':
+    main()

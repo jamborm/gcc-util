@@ -1,0 +1,15 @@
+#!/bin/bash
+
+#rm -rf inst; mkdir inst; rm -rf obj; mkdir obj
+cd ../obj
+
+#~/bin/_cgcc || exit 125
+make -j8 || exit 125
+make install || exit 125
+
+cd /home/mjambor/gcc/benchmarks/spec2000/benchspec/CFP2000/172.mgrid/run/00000001
+
+/home/mjambor/gcc/48/inst/bin/gfortran -c -o mgrid.o -Ofast  mgrid.f -fdump-ipa-inline || exit 125
+
+grep -q 'Considering resid' mgrid.f.0*i.inline && exit 1
+exit 0

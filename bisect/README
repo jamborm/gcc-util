@@ -1,0 +1,2 @@
+Various "git bisect run" scripts so that one does not have to start
+from scratch when writing a new one.

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+cd ..
+rm -rf inst; mkdir inst; rm -rf obj; mkdir obj
+cd obj
+
+/abuild/mjambor/gcc/trunk/src/configure --prefix=/abuild/mjambor/gcc/trunk/inst --enable-languages=c,c++ --enable-checking=yes --disable-bootstrap --disable-sjlj-exceptions || exit 125
+
+make -j8 && exit 0
+make -j8 && exit 0
+
+make 2>&1 | grep -q 'internal compiler error: Segmentation fault' && exit 1
+
+exit 125

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+
+rm -rf inst; mkdir inst; rm -rf obj; mkdir obj
+cd obj
+
+~/bin/_cgcc || exit 125
+make -j24 || exit 125
+make install || exit 125
+
+cd ../tests/pr55862
+/abuild/mjambor/mine/inst/bin/gcc -O2 -S -w pr55862.c 2>&1 | grep -q 'internal compiler error.*tree-ssa-pre.c' && exit 1
+exit 0

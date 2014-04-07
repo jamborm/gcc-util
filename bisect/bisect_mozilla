@@ -1,0 +1,34 @@
+#!/bin/bash
+
+cd ..
+rm -rf inst; mkdir inst; rm -rf obj; mkdir obj
+cd obj
+_cgcc -r
+make -j8 || exit 125
+make install || exit 125
+
+cd /home/pokus/mozilla/
+
+rm -rf mzc/; cp -r 2mzc mzc
+cd mzc/
+
+PATH=/home/pokus/mozilla/bisect_lto_bin:${PATH} LD_LIBRARY_PATH=/home/pokus/gcc/bisect/inst/lib64 CXX=bisect_lto_g++ CXXFLAGS="-O3 -flto=8  -fpermissive -fuse-linker-plugin " CC=bisect_lto_gcc CFLAGS="-O3 -flto=8  -fuse-linker-plugin " LDFLAGS="-O3 -flto=8  -fuse-linker-plugin " make -f client.mk clean
+
+#touch /home/pokus/mozilla/bisect_lto_bin/*
+
+PATH=/home/pokus/mozilla/bisect_lto_bin:${PATH} LD_LIBRARY_PATH=/home/pokus/gcc/bisect/inst/lib64 CXX=bisect_lto_g++ CXXFLAGS="-O3 -flto=8  -fpermissive -fuse-linker-plugin " CC=bisect_lto_gcc CFLAGS="-O3 -flto=8  -fuse-linker-plugin " LDFLAGS="-O3 -flto=8  -fuse-linker-plugin " make -f client.mk || exit 125
+
+LD_LIBRARY_PATH=/home/pokus/gcc/bisect/inst/lib64 ./objdir-ff-release/dist/bin/firefox -no-remote &
+ff_pid=$!
+
+sleep 20
+
+ps | grep "$ff_pid.*firefox$" && kill -9 $ff_pid
+wait $ff_pid
+res=$?
+
+if (($res == 11)); then
+    exit 1
+fi
+exit 0
+

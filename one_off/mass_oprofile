@@ -1,0 +1,116 @@
+#!/bin/bash
+
+OPCONTROL="sudo opcontrol"
+OPREPORT="opreport"
+DLM="|"
+
+LIST="$1"
+COMMAND1="$2"
+COMMAND2="$3"
+EXEC1="$4"
+EXEC2="$5"
+
+if [ -z "$EXEC1" ] ; then
+    EXEC1="$COMMAND1"
+fi
+
+if [ -z "$EXEC2" ] ; then
+    EXEC2="$COMMAND2"
+fi
+
+if [ \! -f "$LIST" ] ; then
+    echo List file does not exist >&2
+    exit 1
+fi
+
+if [ \! -f "$COMMAND1" ] ; then
+    echo Executable 1 does not exist >&2
+    exit 1
+fi
+
+if [ \! -f "$COMMAND2" ] ; then
+    echo Executable 2 does not exist >&2
+    exit 1
+fi
+
+if [ \! -f "$EXEC1" ] ; then
+    echo Executable 1 does not exist >&2
+    exit 1
+fi
+
+if [ \! -f "$EXEC2" ] ; then
+    echo Executable 2 does not exist >&2
+    exit 1
+fi
+
+WFA="/tmp/mo_a_w_$$"
+WFB="/tmp/mo_b_w_$$"
+
+$OPCONTROL --reset &>/dev/null
+$OPCONTROL --shutdown &>/dev/null
+$OPCONTROL --deinit &>/dev/null
+$OPCONTROL --no-vmlinux
+
+cat "$LIST" | while read E ; do
+
+    if [ -z "$E" ] ; then
+	echo
+	continue
+    fi
+
+    echo -n "| $E "
+
+    $OPCONTROL --event=CPU_CLK_UNHALTED:400000 --event="$E" >/dev/null
+    $OPCONTROL --start >/dev/null
+
+    $COMMAND1
+    $COMMAND2
+    
+    $OPCONTROL --stop >/dev/null
+
+    B=`$OPREPORT -x "$EXEC1" 2>$WFB | tail -1`
+    A=`$OPREPORT -x "$EXEC2" 2>$WFA | tail -1`
+
+    BD=`echo $B| cut -d\  -f1`
+    AD=`echo $A| cut -d\  -f1`
+
+    if [[ $BD != [0-9]* ]]; then
+	BD=0
+    fi
+    if [[ $AD != [0-9]* ]]; then
+	AD=0
+    fi    
+
+    DD=`echo $AD - $BD | bc`
+    DDP=`echo "scale=2; 100*$DD/$BD" | bc -l 2>/dev/null`
+
+    BE=`echo $B| cut -d\  -f3`
+    AE=`echo $A| cut -d\  -f3`
+
+    if [[ $BE != [0-9]* ]]; then
+	BE=0
+    fi
+    if [[ $AE != [0-9]* ]]; then
+	AE=0
+    fi    
+
+    DE=`echo "$AE - $BE" | bc`
+    DEP=`echo "scale=2; 100*$DE/$BE" | bc -l 2>/dev/null`
+
+    FLAGS=""
+    if [ `cat $WFB | wc -l` -gt 0 ] ; then
+	FLAGS="(!)"
+    fi
+    if [ `cat $WFA | wc -l` -gt 0 ] ; then
+	FLAGS="(!)"
+    fi
+
+    echo "$FLAGS $DLM $BD $DLM $AD $DLM $DD $DLM $DDP% $DLM $BE $DLM $AE $DLM  $DE $DLM $DEP% $DLM"
+
+    $OPCONTROL --reset >/dev/null
+    $OPCONTROL --shutdown >/dev/null
+    $OPCONTROL --deinit &>/dev/null
+done
+
+rm $WFA &>/dev/null
+rm $WFB &>/dev/null

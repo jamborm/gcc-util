@@ -1,0 +1,10 @@
+# In addition to the scripts, I have these aliases in my .bashrc
+
+alias _rmobj='rm -rf obj; mkdir obj; cd obj'
+alias _rmobjb='rm -rf b-obj; mkdir b-obj; cd b-obj'
+alias _rmobji='rm -rf inst; mkdir inst; rm -rf obj; mkdir obj; cd obj'
+alias _time='/usr/bin/time -f "real=%e user=%U system=%S share=%P%% maxrss=%M ins=%I outs=%O mfaults=%R waits=%w"'
+
+export NUM_CPUS=`getconf _NPROCESSORS_ONLN`
+export JMAKE=$(($NUM_CPUS))
+alias _boo='_rmobjb; _cgcc; make -j${JMAKE} && make -j${JMAKE} -k check; __extr_sums ../logs/ ; echo "Bootstrap on $HOST finished" | netcat virgil.suse.cz 4321'

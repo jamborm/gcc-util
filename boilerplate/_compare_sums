@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Compares *.sum files in the current directory with those in the one
+# given by the first parameter or in ../../trunk/logs if none given.
+
+if [ -z "$1" ] ; then
+    C=`pwd`
+    C=${C%/*}
+    C=${C%/*}
+
+    DIR=$C/trunk/logs
+
+    if [ \! -d $DIR ] ; then
+	echo "Error: Could not find reference tests." >&2
+	echo "       Specify their directory with a parameter." >&2
+	exit 1
+    fi
+else
+    DIR="$1"
+fi
+
+# for I in *.sum; do echo ===== $I =====; compare_tests $DIR/$I $I; done | less
+for I in *.sum; do echo ===== $I =====; compare_sums.py $DIR/$I $I; done | less -S
