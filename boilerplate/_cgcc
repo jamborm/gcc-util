@@ -12,6 +12,7 @@ import sys
 import os
 import getopt
 import time
+import getpass
 
 def die(s):
     "Give a string warning S to stderr and abort with exit code 1."
@@ -47,11 +48,11 @@ Options:
 -r            Release checking instead of default "all" checking.
 --fold        "yes,fold" checking
 
---nosan       Pass "--disable-libsanitizer" (default on all platforms 
+--no-san      Pass "--disable-libsanitizer" (default on all platforms 
               except x86_64)
 --san         Do not pass "--disable-libsanitizer" (useful on other platforms)
 --multi       Pass "--disable-multilib"
---no-multi    Pass "--disable-multilib".  Default on some problematic hosts.
+--no-multi    Pass "--disable-multilib".  Default on some hosts.
 --memstat     Pass "--enable-gather-detailed-mem-stats"
 
 --gold        Pass "--enable-gold".
@@ -63,63 +64,82 @@ Options:
 
 """
 
+def is_exe(fpath):
+    return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
 def main():
 
-    if os.getcwd().split("/")[1] == "abuild":
-        gold_path = "/abuild/mjambor/binutils-2.24/obj/gold/ld-new"
-    else:
-        gold_path = "/home/mjambor/binutils/obj/gold/ld-new"
-        pass
+    # ----- Lists of special hosts: -----
+
+    # Hosts on which we never pass an ld plugin parameter
+    dis_plugin_hosts = []
+    #plugin_hosts = ["virgil", "alvy", "tuc", "evans", "conte"]
+
+    # Hosts on which we disable multilib by default
+    dis_multilib_hosts = ["tuc", "alvy"]
+
+    # x86_64 Hosts on which we disable sanitizers by default, for
+    # other platforms disabling is alwys the default
+    dis_sanitizers_hosts = ["alvy"]
+
+    # ----- Simple defaults -----
 
     lang = "c,c++"
     bootstrap = False
     checking = "yes"
+    just_print = False
+    other_flags = ""
 
+    # ----- Default languages -----
+
+    if (os.path.split(os.getcwd())[1] == "b-obj"):
+        bootstrap = True
+        lang = "all,ada,obj-c++"
+
+
+    # ----- LTO plugin -----
     unm = os.uname()
-    if unm[-1] == "x86_64":
-        sanitizer = True
+    if os.getcwd().split("/")[1] == "abuild":
+        gold_path = "/abuild/mjambor/binutils-2.24/obj/gold/ld-new"
     else:
-        sanitizer = False
+        gold_path = "/home/" + getpass.getuser() + "/binutils/obj/gold/ld-new"
         pass
-    exp_sanitizer = False
 
     warn_ld_plugin_disabled = True
-    try:
-        plugin_hosts = ["virgil", "alvy", "tuc", "evans"]
-        if plugin_hosts.count(os.environ["HOST"]) > 0:
-            ld_plugin = True
-        else:
-            ld_plugin = False
-            pass
-        pass
-    except:
+    if is_exe (gold_path) and not (unm[1] in dis_plugin_hosts):
+        ld_plugin = True
+    else:
         ld_plugin = False
         pass
 
+    # ----- Libsanitizer -----
+    if (unm[-1] == "x86_64"
+        and not (unm[1] in dis_sanitizers_hosts)):
+        sanitizer = True
+        warn_sanitizer = False
+    else:
+        sanitizer = False
+        warn_sanitizer = True
+        pass
+    exp_sanitizer = False
+
+    # ----- Multilib -----
     ena_multilib = False
     dis_multilib = False
     warn_dis_multilib = False
     try:
-        dis_multilib_hosts = ["tuc"]
-        if dis_multilib_hosts.count(os.environ["HOST"]) > 0:
+        if unm[1] in dis_multilib_hosts:
             dis_multilib = True
             warn_dis_multilib = True
         pass
     except:
         pass
 
-    just_print = False
-    other_flags = ""
-
-    if (os.path.split(os.getcwd())[1] == "b-obj"):
-        bootstrap = True
-        lang = "all,ada,obj-c++"
-
+    # ----- Process arguments -----
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], "hadocpfbnrz",
                                        ["help", "fort", "ada", "no-java",
-                                        "fold", "nosan", "san", "memstat",
+                                        "fold", "no-san", "san", "memstat",
                                         "gold", "plugin", "no-plugin",
                                         "lto-boot", "multi", "no-multi"])
     except getopt.GetoptError, err:
@@ -158,12 +178,14 @@ def main():
             just_print = True
         elif o == "--fold":
             checking = "yes,fold"
-        elif o == "--nosan":
+        elif o == "--no-san":
             sanitizer = False
             exp_sanitizer = False
+            warn_sanitizer = False
         elif o == "--san":
             sanitizer = True;
             exp_sanitizer = True            
+            warn_sanitizer = False
         elif o == "--memstat":
             other_flags = other_flags + " --enable-gather-detailed-mem-stats"
         elif o == "--gold":
@@ -190,6 +212,7 @@ def main():
             pass
         continue
 
+    # ----- Construct the command line -----
     warning = False
 
     if len(args) > 0:
@@ -233,6 +256,11 @@ def main():
 
     if not sanitizer:
         cmd = cmd + " --disable-libsanitizer"
+        if warn_sanitizer:
+            sys.stderr.write ("WARNING: Libsanitizer implicitely disabled for "
+                              + "this host, use --san to override.\n")
+            warning = True
+            pass
         pass
     elif exp_sanitizer:
         cmd = cmd + " --enable-libsanitizer"
