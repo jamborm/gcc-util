@@ -54,9 +54,11 @@ Options:
 --no-san      Pass "--disable-libsanitizer" (default on all platforms 
               except x86_64 and some selected hosts)
 --san         Do not pass "--disable-libsanitizer" (useful on other platforms)
---multi       Pass "--disable-multilib"
+--multi       Pass "--enable-multilib"
 --no-multi    Pass "--disable-multilib".  Default on some hosts.
---fast        Pass both "--disable-libsanitizer" and "--disable-multilib"
+--no-cilk     Pass "--disable-libcilkrts".  Default on selected hosts.
+--cilk        Do not pass "--enable-libcilkrts" even when disabled by default.
+--fast        Combination of --no-san --no-multi and --no-cilk
 --memstat     Pass "--enable-gather-detailed-mem-stats"
 
 --gold        Pass "--enable-gold".
@@ -82,9 +84,13 @@ def main():
     # Hosts on which we disable multilib by default
     dis_multilib_hosts = ["alvy", "tuc"]
 
+    # Hosts on which we disable cilk-plus by default.
+    dis_cilkplus_hosts = ["alvy", "albali", "marfak"]
+
     # x86_64 Hosts on which we disable sanitizers by default, for
     # other platforms disabling is always the default
     dis_sanitizers_hosts = ["alvy"]
+
 
     # ----- Simple defaults -----
 
@@ -139,6 +145,17 @@ def main():
     except:
         pass
 
+    # ----- Cilk-plus -----
+    dis_cilkplus = False
+    warn_dis_cilkplus = False
+    try:
+        if unm[1] in dis_cilkplus_hosts:
+            dis_cilkplus = True
+            warn_dis_cilkplus = True
+            pass
+    except:
+        pass
+    
     # ----- Process arguments -----
     try:
         opts, args = getopt.gnu_getopt(sys.argv[1:], "hadogcpfbnrz",
@@ -146,7 +163,8 @@ def main():
                                         "go", "no-ada", "fold", "no-san",
                                         "san", "memstat", "gold", "plugin",
                                         "no-plugin", "lto-boot", "multi",
-                                        "no-multi", "fast"])
+                                        "no-multi", "cilk", "no-cilk",
+                                        "fast"])
     except getopt.GetoptError, err:
         # print help information and exit:
         print_usage()
@@ -217,6 +235,12 @@ def main():
             dis_multilib = True
             warn_dis_multilib = False
             ena_multilib = False
+        elif o == "--cilk":
+            dis_cilkplus = False
+            warn_dis_cilkplus = False
+        elif o == "--no-cilk":
+            dis_cilkplus = True
+            warn_dis_cilkplus = False
         elif o == "--fast":
             sanitizer = False
             exp_sanitizer = False
@@ -225,6 +249,9 @@ def main():
             dis_multilib = True
             warn_dis_multilib = False
             ena_multilib = False
+
+            dis_cilkplus = True
+            warn_dis_cilkplus = False
         else:
             print_usage()
             die ("Error, unknown option %s" % o)
@@ -295,6 +322,15 @@ def main():
         pass
     elif ena_multilib:
         cmd = cmd + " --enable-multilib"
+        pass
+
+    if dis_cilkplus:
+        cmd = cmd + " --disable-libcilkrts"
+        if warn_dis_cilkplus:
+            sys.stderr.write ("WARNING: Cilk-plus implicitely disabled for "
+                              + "this host, use --cilk to override.\n")
+            warning = True
+            pass
         pass
 
     cfarm_gmp = "/opt/cfarm/gmp-latest"
