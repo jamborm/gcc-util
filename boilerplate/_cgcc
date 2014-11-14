@@ -65,6 +65,7 @@ Options:
 --plugin      Pass "--with-plugin-ld" even when not on a selected host
 --no-plugin   Do not pass any "--with-plugin-ld" even on selected hosts
 --lto-boot    LTO bootstrap.  Implies -b.
+--no-cfarmlib Do not use MPFR, GMP and MPC from /opt/cfarm even when present
 
 -z	      Just print the configure command, do not run it.
 
@@ -99,6 +100,7 @@ def main():
     checking = "yes"
     just_print = False
     other_flags = ""
+    use_cfarm_lib_if_available = True
 
     # ----- Default languages -----
 
@@ -164,7 +166,7 @@ def main():
                                         "san", "memstat", "gold", "plugin",
                                         "no-plugin", "lto-boot", "multi",
                                         "no-multi", "cilk", "no-cilk",
-                                        "fast"])
+                                        "fast", "no-cfarmlib"])
     except getopt.GetoptError, err:
         # print help information and exit:
         print_usage()
@@ -252,6 +254,8 @@ def main():
 
             dis_cilkplus = True
             warn_dis_cilkplus = False
+        elif o == "--no-cfarmlib":
+            use_cfarm_lib_if_available = False
         else:
             print_usage()
             die ("Error, unknown option %s" % o)
@@ -333,25 +337,26 @@ def main():
             pass
         pass
 
-    cfarm_gmp = "/opt/cfarm/gmp-latest"
-    cfarm_mpfr = "/opt/cfarm/mpfr-latest"
-    cfarm_mpc = "/opt/cfarm/mpc-latest"
-    # Check compile farm libraries and use them if present
-    if os.path.isdir (cfarm_gmp):
-        cmd = cmd + " --with-gmp=" + cfarm_gmp
-        sys.stderr.write ("NOTE: Using compile farm GMP.\n")
-        warning = True
-        pass
-    if os.path.isdir (cfarm_mpfr):
-        cmd = cmd + " --with-mpfr=" + cfarm_mpfr
-        sys.stderr.write ("NOTE: Using compile farm MPFR.\n")
-        warning = True
-        pass
-    if os.path.isdir (cfarm_mpc):
-        cmd = cmd + " --with-mpc=" + cfarm_mpc
-        sys.stderr.write ("NOTE: Using compile farm MPC.\n")
-        warning = True
-        pass
+    if use_cfarm_lib_if_available:
+        cfarm_gmp = "/opt/cfarm/gmp-latest"
+        cfarm_mpfr = "/opt/cfarm/mpfr-latest"
+        cfarm_mpc = "/opt/cfarm/mpc-latest"
+        # Check compile farm libraries and use them if present
+        if os.path.isdir (cfarm_gmp):
+            cmd = cmd + " --with-gmp=" + cfarm_gmp
+            sys.stderr.write ("NOTE: Using compile farm GMP.\n")
+            warning = True
+            pass
+        if os.path.isdir (cfarm_mpfr):
+            cmd = cmd + " --with-mpfr=" + cfarm_mpfr
+            sys.stderr.write ("NOTE: Using compile farm MPFR.\n")
+            warning = True
+            pass
+        if os.path.isdir (cfarm_mpc):
+            cmd = cmd + " --with-mpc=" + cfarm_mpc
+            sys.stderr.write ("NOTE: Using compile farm MPC.\n")
+            warning = True
+            pass
 
     cmd = cmd + other_flags
     
