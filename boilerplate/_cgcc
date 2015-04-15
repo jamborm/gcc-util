@@ -90,7 +90,7 @@ def main():
 
     # x86_64 Hosts on which we disable sanitizers by default, for
     # other platforms disabling is always the default
-    dis_sanitizers_hosts = ["alvy"]
+    dis_sanitizers_hosts = ["alvy", "quantz"]
 
 
     # ----- Simple defaults -----
