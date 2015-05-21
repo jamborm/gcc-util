@@ -48,6 +48,7 @@ Options:
               current directory name is "b-obj".
 -n            Do not bootstrap whatever the name of the current directory is.
 
+--hsa         Pass --enable-offload-targets=hsa
 -r            Release checking instead of default "all" checking.
 --fold        "yes,fold" checking
 
@@ -76,6 +77,10 @@ def is_exe(fpath):
 
 def main():
 
+    # ----- Some basic initialization -----
+
+    home_dir = os.getenv("HOME")
+
     # ----- Lists of special hosts: -----
 
     # Hosts on which we never pass an ld plugin parameter
@@ -86,12 +91,11 @@ def main():
     dis_multilib_hosts = ["alvy", "tuc"]
 
     # Hosts on which we disable cilk-plus by default.
-    dis_cilkplus_hosts = ["alvy", "albali", "marfak"]
+    dis_cilkplus_hosts = ["alvy", "quantz"]
 
     # x86_64 Hosts on which we disable sanitizers by default, for
     # other platforms disabling is always the default
     dis_sanitizers_hosts = ["alvy", "quantz"]
-
 
     # ----- Simple defaults -----
 
@@ -101,6 +105,7 @@ def main():
     just_print = False
     other_flags = ""
     use_cfarm_lib_if_available = True
+    hsa_stuff = False
 
     # ----- Default languages -----
 
@@ -114,7 +119,7 @@ def main():
     if os.getcwd().split("/")[1] == "abuild":
         gold_path = "/abuild/mjambor/binutils-2.24/obj/gold/ld-new"
     else:
-        gold_path = "/home/" + getpass.getuser() + "/binutils/obj/gold/ld-new"
+        gold_path = home_dir + "/binutils/obj/gold/ld-new"
         pass
 
     warn_ld_plugin_disabled = True
@@ -166,7 +171,7 @@ def main():
                                         "san", "memstat", "gold", "plugin",
                                         "no-plugin", "lto-boot", "multi",
                                         "no-multi", "cilk", "no-cilk",
-                                        "fast", "no-cfarmlib"])
+                                        "fast", "no-cfarmlib", "hsa"])
     except getopt.GetoptError, err:
         # print help information and exit:
         print_usage()
@@ -256,6 +261,8 @@ def main():
             warn_dis_cilkplus = False
         elif o == "--no-cfarmlib":
             use_cfarm_lib_if_available = False
+        elif o == "--hsa":
+            hsa_stuff = True;
         else:
             print_usage()
             die ("Error, unknown option %s" % o)
@@ -295,6 +302,15 @@ def main():
     if not bootstrap:
         cmd = cmd + " --disable-bootstrap"
         pass
+
+    if hsa_stuff:
+        cmd = cmd + " --enable-offload-targets=hsa"
+        hsart1 = home_dir + "/hsa/HSA-Runtime-AMD"
+        hsart2 = home_dir + "/hsa/1.0F/HSA-Runtime-AMD"
+        if os.path.exists (hsart1):
+            cmd = cmd + " --with-hsa-runtime=" + hsart1
+        if os.path.exists (hsart2):
+            cmd = cmd + " --with-hsa-runtime=" + hsart2
 
     if ld_plugin:
         cmd = cmd + " --with-plugin-ld=" + gold_path
