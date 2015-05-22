@@ -91,10 +91,10 @@ def print_bbs ():
 
     for bb in bbs:
         if bb in empty_bbs:
-            attrs = '[style=filled, fillcolor=yellow, label="%s|  ?"];' % bb
+            attrs = '[style=filled, fillcolor=yellow, label="%s"];' % bb
             pass
         else:
-            attrs = '[label="%s|  ?"];' % bb
+            attrs = '[label="%s"];' % bb
             pass
         print ('\t"%s"' % bb) + attrs
 
