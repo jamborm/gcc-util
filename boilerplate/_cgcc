@@ -62,6 +62,7 @@ Options:
 --fast        Combination of --no-san --no-multi and --no-cilk
 --memstat     Pass "--enable-gather-detailed-mem-stats"
 
+--vgrind      Pass "--enable-valgrind-annotations"
 --gold        Pass "--enable-gold".
 --plugin      Pass "--with-plugin-ld" even when not on a selected host
 --no-plugin   Do not pass any "--with-plugin-ld" even on selected hosts
@@ -168,7 +169,8 @@ def main():
         opts, args = getopt.gnu_getopt(sys.argv[1:], "hadogcpfbnrz",
                                        ["help", "fort", "ada", "no-java",
                                         "go", "no-ada", "fold", "no-san",
-                                        "san", "memstat", "gold", "plugin",
+                                        "san", "memstat", "vgrind",
+                                        "gold", "plugin",
                                         "no-plugin", "lto-boot", "multi",
                                         "no-multi", "cilk", "no-cilk",
                                         "fast", "no-cfarmlib", "hsa"])
@@ -226,6 +228,8 @@ def main():
             other_flags = other_flags + " --enable-gather-detailed-mem-stats"
         elif o == "--gold":
             other_flags = other_flags + " --enable-gold"
+        elif o == "--vgrind":
+            other_flags = other_flags + " --enable-valgrind-annotations"
         elif o == "--plugin":
             ld_plugin = True
         elif o == "--no-plugin":
