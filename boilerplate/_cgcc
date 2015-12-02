@@ -64,8 +64,7 @@ Options:
 
 --vgrind      Pass "--enable-valgrind-annotations"
 --gold        Pass "--enable-gold".
---plugin      Pass "--with-plugin-ld" even when not on a selected host
---no-plugin   Do not pass any "--with-plugin-ld" even on selected hosts
+--plugin      Pass "--with-plugin-ld" if gold plugin is found
 --lto-boot    LTO bootstrap.  Implies -b.
 --no-cfarmlib Do not use MPFR, GMP and MPC from /opt/cfarm even when present
 
@@ -83,10 +82,6 @@ def main():
     home_dir = os.getenv("HOME")
 
     # ----- Lists of special hosts: -----
-
-    # Hosts on which we never pass an ld plugin parameter
-    dis_plugin_hosts = []
-    #plugin_hosts = ["virgil", "alvy", "tuc", "evans", "conte"]
 
     # Hosts on which we disable multilib by default
     dis_multilib_hosts = ["alvy", "tuc"]
@@ -123,12 +118,7 @@ def main():
         gold_path = home_dir + "/binutils/obj/gold/ld-new"
         pass
 
-    warn_ld_plugin_disabled = True
-    if is_exe (gold_path) and not (unm[1] in dis_plugin_hosts):
-        ld_plugin = True
-    else:
-        ld_plugin = False
-        pass
+    ld_plugin = False
 
     # ----- Libsanitizer -----
     if (unm[-1] == "x86_64"
@@ -171,7 +161,7 @@ def main():
                                         "go", "no-ada", "fold", "no-san",
                                         "san", "memstat", "vgrind",
                                         "gold", "plugin",
-                                        "no-plugin", "lto-boot", "multi",
+                                        "lto-boot", "multi",
                                         "no-multi", "cilk", "no-cilk",
                                         "fast", "no-cfarmlib", "hsa"])
     except getopt.GetoptError, err:
@@ -232,9 +222,6 @@ def main():
             other_flags = other_flags + " --enable-valgrind-annotations"
         elif o == "--plugin":
             ld_plugin = True
-        elif o == "--no-plugin":
-            warn_ld_plugin_disabled = False
-            ld_plugin = False
         elif o == "--lto-boot":
             bootstrap = True
             other_flags = other_flags + " --with-build-config=bootstrap-lto"
@@ -317,11 +304,12 @@ def main():
             cmd = cmd + " --with-hsa-runtime=" + hsart2
 
     if ld_plugin:
+        if not is_exe (gold_path):
+            sys.stderr.write ("WARNING: Gold plugin requested but not found\n")
+            warning = True
+            pass
+
         cmd = cmd + " --with-plugin-ld=" + gold_path
-        pass
-    elif warn_ld_plugin_disabled:
-        sys.stderr.write ("WARNING: Not using ld plugin, expect LTO issues\n")
-        warning = True
         pass
 
     if not sanitizer:
