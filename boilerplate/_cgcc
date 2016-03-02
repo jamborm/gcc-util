@@ -373,6 +373,7 @@ def main():
         pass
 
     print(cmd)
+    ret = 0;
     
     if not just_print:
         if warning:
@@ -380,8 +381,9 @@ def main():
         else:
             time.sleep(0.5)
             pass
-        os.system(cmd)
+        ret = os.system(cmd)
         pass
+    sys.exit(ret);
     return
 
 if __name__ == '__main__':
