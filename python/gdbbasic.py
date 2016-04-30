@@ -482,4 +482,6 @@ set_basic_breakpoints()
 
 gdb.execute("set unwindonsignal on")
 gdb.execute("skip file tree.h")
+gdb.execute("skip file is-a.h")
+gdb.execute("skip file line-map.h")
 gdb.execute("set check type off")
