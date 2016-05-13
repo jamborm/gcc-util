@@ -61,6 +61,7 @@ Options:
 --no-cilk     Pass "--disable-libcilkrts".  Default on selected hosts.
 --cilk        Do not pass "--enable-libcilkrts" even when disabled by default.
 --fast        Combination of --no-san --no-multi and --no-cilk
+--no-isl      Pass "--without-isl"
 --memstat     Pass "--enable-gather-detailed-mem-stats"
 
 --vgrind      Pass "--enable-valgrind-annotations"
@@ -164,7 +165,8 @@ def main():
                                         "gold", "plugin",
                                         "lto-boot", "multi",
                                         "no-multi", "cilk", "no-cilk",
-                                        "fast", "no-cfarmlib", "hsa"])
+                                        "fast", "no-isl", "no-cfarmlib",
+                                        "hsa"])
     except getopt.GetoptError, err:
         # print help information and exit:
         print_usage()
@@ -253,6 +255,8 @@ def main():
 
             dis_cilkplus = True
             warn_dis_cilkplus = False
+        elif o == "--no-isl":
+            other_flags = other_flags + " --without-isl"
         elif o == "--no-cfarmlib":
             use_cfarm_lib_if_available = False
         elif o == "--hsa":
