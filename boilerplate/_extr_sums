@@ -8,4 +8,4 @@ if [ -z "$1" ] ; then
     exit 1
 fi
 
-cp -v `find . -name '*.sum' -print` $1
+cp -vp `find . -name '*.sum' -print` $1
